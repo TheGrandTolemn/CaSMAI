@@ -33,7 +33,7 @@ import pandas as pd
 
 class CoreInputOutput:
 
-    def __init__(self, model=None, attached_cores=None, default_intro="Given this list of descriptions: ", defualt_prompt= "Which description best relates to this question, respond with just the number of the description."):
+    def __init__(self, model=None, attached_cores=None, default_intro="Here's a list of descriptions: ", defualt_prompt="Respond with just the number of the description that best relates to this question: "):
 
         self.model = model
         self.attached_cores = attached_cores
@@ -85,48 +85,57 @@ class CoreInputOutput:
                 print("Results: ")
                 print(results)
         else:
-            if llmcic:
-                if interaction_level == 1:
-                    input_text = self.audio_input_module()
-                    core_index = self.llm_central_interperatation_module(input_text, debug_mode=debug_mode, maxtries=maxtries)
-                    if core_index == -1:
-                        result = self.llm_central_interperatation_module(input_text, debug_mode=False, use_as_core=True)
-                        self.universal_output_module(result, "Text")
+            while True:
+                if llmcic:
+                    if interaction_level == 1:
+                        input_text = self.audio_input_module()
+                        if input_text in ["Quit", "quit", "stop", "Stop", "Bye", "bye"]:
+                            break
+                        core_index = self.llm_central_interperatation_module(input_text, debug_mode=debug_mode, maxtries=maxtries)
+                        if core_index == -1:
+                            result = self.llm_central_interperatation_module(input_text, debug_mode=False, use_as_core=True)
+                            self.universal_output_module(result, "Text")
+                        else:
+                            if core_select_only:
+                                print(core_index-1)
+                            else:
+                                result = self.attached_cores[core_index-1].prompt_core(input_text)
+                                self.universal_output_module(result, self.attached_cores[core_index-1].core_output_preference)
                     else:
+                        input_text = self.text_input_module()
+                        if input_text in ["Quit", "quit", "stop", "Stop", "Bye", "bye"]:
+                            break
+                        core_index = self.llm_central_interperatation_module(input_text, debug_mode=debug_mode, maxtries=maxtries)
+                        if core_index == -1:
+                            result = self.llm_central_interperatation_module(input_text, debug_mode=False, use_as_core=True)
+                            self.universal_output_module(result, "Text")
+                        else:
+                            if core_select_only:
+                                print(core_index-1)
+                            else:
+                                result = self.attached_cores[core_index-1].prompt_core(input_text)
+                                self.universal_output_module(result, self.attached_cores[core_index-1].core_output_preference)
+                else:
+                    if interaction_level == 1:
+                        input_text = self.audio_input_module()
+                        if input_text in ["Quit", "quit", "stop", "Stop", "Bye", "bye"]:
+                            break
+                        core_index = self.ssm_central_interperatation_module(input_text, debug_mode=debug_mode)
                         if core_select_only:
-                            print(core_index-1)
+                            print(core_index)
                         else:
                             result = self.attached_cores[core_index-1].prompt_core(input_text)
                             self.universal_output_module(result, self.attached_cores[core_index-1].core_output_preference)
-                else:
-                    input_text = self.text_input_module()
-                    core_index = self.llm_central_interperatation_module(input_text, debug_mode=debug_mode, maxtries=maxtries)
-                    if core_index == -1:
-                        result = self.llm_central_interperatation_module(input_text, debug_mode=False, use_as_core=True)
-                        self.universal_output_module(result, "Text")
                     else:
+                        input_text = self.text_input_module()
+                        if input_text in ["Quit", "quit", "stop", "Stop", "Bye", "bye"]:
+                            break
+                        core_index = self.ssm_central_interperatation_module(input_text, debug_mode=debug_mode)
                         if core_select_only:
-                            print(core_index-1)
+                            print(core_index)
                         else:
                             result = self.attached_cores[core_index-1].prompt_core(input_text)
                             self.universal_output_module(result, self.attached_cores[core_index-1].core_output_preference)
-            else:
-                if interaction_level == 1:
-                    input_text = self.audio_input_module()
-                    core_index = self.ssm_central_interperatation_module(input_text, debug_mode=debug_mode)
-                    if core_select_only:
-                        print(core_index)
-                    else:
-                        result = self.attached_cores[core_index].prompt_core(input_text)
-                        self.universal_output_module(result, self.attached_cores[core_index].core_output_preference)
-                else:
-                    input_text = self.text_input_module()
-                    core_index = self.ssm_central_interperatation_module(input_text, debug_mode=debug_mode)
-                    if core_select_only:
-                        print(core_index)
-                    else:
-                        result = self.attached_cores[core_index].prompt_core(input_text)
-                        self.universal_output_module(result, self.attached_cores[core_index].core_output_preference)
 
     def llm_central_interperatation_module(self, general_query_as_text, debug_mode=False, maxtries=1, use_as_core=False):
 
@@ -184,6 +193,8 @@ class CoreInputOutput:
         # sentences from which to choose from
         sentences = self.core_distiller(singlestring=False)
 
+
+
         # test query
         test_query = general_query_as_text
 
@@ -221,7 +232,7 @@ class CoreInputOutput:
         # expecting the core list to be a list of SystemCores
 
         if singlestring:
-            core_descriptions = "Description 0 describes general inquiries, not related to any other listed description"
+            core_descriptions = "Description 0 describes general inquiries, not related to any other listed description, "
 
             for index, item in enumerate(self.attached_cores):
                 core_descriptions = core_descriptions + "Description " + str(index + 1) + " " + item.core_description + ", "
@@ -232,18 +243,18 @@ class CoreInputOutput:
             core_descriptions = [description_00]
 
             for index, item in enumerate(self.attached_cores):
-                core_descriptions.append(item)
+                core_descriptions.append(item.core_description)
 
             return core_descriptions
 
-    def phaneron_basic(self):
-        # not implemented yet
-        '''This module serves as a sort of dumb memory for understanding short term content about the interaction'''
+   # Utility Modules
 
     def llm_input_diagnostics_module(self, list_dictionary_queries):
 
         correct = 0
         number_queries = len(list_dictionary_queries)
+
+        data_array = []
 
 
         for index, item in enumerate(list_dictionary_queries):
@@ -264,8 +275,15 @@ class CoreInputOutput:
             answer = response['message']['content']
             print(f"Answer to Query# {index}")
             print(answer)
-            if answer == item["Goal"]:
+            if answer[0] == str(item["Goal"]):
                 correct += 1
+
+            data_array.append({"Answer to Query": answer, "Goal": item["Goal"], "Query": item["Query"], "Full Prompt": prompt})
+
+        print("Converting to Dataframe")
+        data_array_df = pd.DataFrame.from_records(data_array)
+        print("Exporting Results...")
+        data_array_df.to_csv("LLM_results.csv")
 
         return [correct, number_queries]
 
@@ -277,7 +295,9 @@ class CoreInputOutput:
         # sentences from which to choose from
         sentences = self.core_distiller(singlestring=False)
 
+        print(sentences)
 
+        data_array = []
 
 
         for index, item in enumerate(list_dictionary_queries):
@@ -297,8 +317,15 @@ class CoreInputOutput:
 
             print(f"Answer to Query# {index}")
             print(answer)
-            if answer == item["Goal"]:
+            if answer[0] == str(item["Goal"]):
                 correct += 1
+
+            data_array.append({"Answer to Query": answer, "Goal": item["Goal"], "Query": item["Query"], "LLM Response": answer})
+
+        print("Converting to Dataframe")
+        data_array_df = pd.DataFrame.from_records(data_array)
+        print("Exporting Results...")
+        data_array_df.to_csv("SSM_results.csv")
 
         return [correct, number_queries]
 
@@ -309,8 +336,10 @@ class CoreInputOutput:
         all_results = []
 
         for item in list_dictionary_queries:
+            print(f"Testing Prompt: {item}")
             item_goal = int(item["Goal"])
 
+            print("Testing on Core 0...")
             core_0_response = self.llm_central_interperatation_module(item["Query"], use_as_core=True)
             # check for actual core:
             if item_goal == 0:
@@ -330,6 +359,7 @@ class CoreInputOutput:
             all_results.append(core_0_result)
 
             # ----------------------------------------------------------------------------------------------------------
+            print("Testing on Core 1...")
             core_1_response = self.attached_cores[0].prompt_core(item["Query"], test_mode=True)
             # check for actual core:
             if item_goal == 0:
@@ -349,6 +379,7 @@ class CoreInputOutput:
             all_results.append(core_1_result)
 
             # ----------------------------------------------------------------------------------------------------------
+            print("Testing on Core 2...")
             core_2_response = self.attached_cores[1].prompt_core(item["Query"], test_mode=True)
             # check for actual core:
             if item_goal == 0:
@@ -368,6 +399,7 @@ class CoreInputOutput:
             all_results.append(core_2_result)
 
             # ----------------------------------------------------------------------------------------------------------
+            print("Testing on Core 3...")
             core_3_response = self.attached_cores[2].prompt_core(item["Query"], test_mode=True)
             # check for actual core:
             if item_goal == 0:
@@ -387,6 +419,7 @@ class CoreInputOutput:
             all_results.append(core_3_result)
 
             # ----------------------------------------------------------------------------------------------------------
+            print("Testing on Core 4...")
             core_4_response = self.attached_cores[3].prompt_core(item["Query"], test_mode=True)
             # check for actual core:
             if item_goal == 0:
@@ -407,8 +440,9 @@ class CoreInputOutput:
 
             # ----------------------------------------------------------------------------------------------------------
 
+        print("Converting to Dataframe")
         results = pd.DataFrame.from_records(all_results)
-
+        print("Exporting Results...")
         results.to_csv("Results")
 
     def semantic_similarity(self, input_string, goal_string):
@@ -417,6 +451,12 @@ class CoreInputOutput:
         similarity_score = 1 - distance.cosine(test_vec, model.encode([goal_string])[0])
         return similarity_score
 
+
+    # CaSMAI Extras
+
+    def phaneron_basic(self):
+        # not implemented yet
+        '''This module serves as a sort of dumb memory for understanding short term content about the interaction'''
 
 
 class SystemCore:
@@ -485,14 +525,14 @@ class DiffuseCore(SystemCore):
 # Core Initialization
 
 
-Code_Core = SystemCore(core_description=" related to generating Code, Functions, Classes and Methods in various Programming Languges, as well as troubleshooting complex Code errors and problems",
+Code_Core = SystemCore(core_description=" related to questions for generating Code, Functions, Classes and Methods in various Programming Languges, as well as troubleshooting complex Code errors and problems as well as helping with general questions related to code.",
                        core_input_preference="Text",
                        core_output_preference="Text",
                        core_model="codellama",
                        ollama_core=True)
 
 
-Diffuse_Core = DiffuseCore(core_description=" for creating artwork, making drawings, producing images, and illustrating concepts. This is for illustrating concepts and making pictures only,",
+Diffuse_Core = DiffuseCore(core_description=" for questions asking for creating artwork, making drawings, producing images, and illustrating concepts. This is for illustrating concepts and making visual or artistic pictures only,",
                           core_input_preference="Text",
                           core_output_preference="Image",
                           ollama_core=False,
@@ -500,13 +540,13 @@ Diffuse_Core = DiffuseCore(core_description=" for creating artwork, making drawi
                           pipeline=StableDiffusionPipeline.from_single_file
                           )
 
-Shakespear_Core = SystemCore(core_description=" related to generating witty responses, romantic literature, poems, and anything theatre or drama related",
+Shakespear_Core = SystemCore(core_description=" related to generating witty responses to questions, romantic literature, poems, and anything theatre, drama or shakespeare related",
                        core_input_preference="Text",
                        core_output_preference="Text",
                        core_model="ALIENTELLIGENCE/shakespeare",
                        ollama_core=True)
 
-Medical_Core = SystemCore(core_description=" related to medicine, medical diagnosis, figuring out illnesses or medical conditions based on a set of symptoms given",
+Medical_Core = SystemCore(core_description=" related to medicine, medical diagnosis, figuring out illnesses or medical conditions based on a set of symptoms given, and general questions regarding medicine, the medical field or common symptoms",
                        core_input_preference="Text",
                        core_output_preference="Text",
                        core_model="medllama2:latest",
@@ -514,6 +554,12 @@ Medical_Core = SystemCore(core_description=" related to medicine, medical diagno
 
 
 AttachedCores=[Code_Core, Diffuse_Core, Shakespear_Core, Medical_Core]
+
+# General Core = 0
+# Code Core = 1
+# Diffuse Core = 2
+# Shakespear Core = 3
+# Medical Core = 4
 
 CaSMAI = CoreInputOutput(model="llama3.2", attached_cores=AttachedCores)
 
@@ -530,7 +576,7 @@ test_cases = [
     {"Query": "I have a patient who is showing symptoms of migraines, fever, sore throat and rash. Do you know what's wrong with them?", "Goal": "4"}
 ]
 
-New_Test_Cases = [
+Old_Gen_Test_Cases = [
     {"Query": "What are the symptoms of Type 2 diabetes?", "Goal": 1},
     {"Query": "What is the difference between Type 1 and Type 2 diabetes?", "Goal": 1},
     {"Query": "Can you explain how the human heart works?", "Goal": 1},
@@ -621,13 +667,103 @@ New_Test_Cases = [
 ]
 
 micro_test_cases = [
-    {"Query": "Patient is feeling sick, exhibiting symptoms of diarrhea, fever and sore throat. Do you have a medical diagnosis?", "Goal": "4"},
-    {"Query": "I want a witty poem that tells of a romance between two star crossed lovers.", "Goal": "3"}
-
+    {"Query": "Patient is feeling sick, exhibiting symptoms of diarrhea, fever and sore throat. Do you have a medical diagnosis?", "Goal": "4"}
 ]
+
+New_Test_Cases = [
+    {"Query": "What are the symptoms of a heart attack?", "Goal": 4},
+    {"Query": "What treatments are available for Type 2 Diabetes?", "Goal": 4},
+    {"Query": "Explain how the liver detoxifies the body.", "Goal": 4},
+    {"Query": "What is the role of insulin in regulating blood sugar?", "Goal": 4},
+    {"Query": "How can a diet help manage high cholesterol?", "Goal": 4},
+
+    {"Query": "Generate an image of a futuristic cityscape at sunset.", "Goal": 2},
+    {"Query": "Create an abstract painting with swirling blue and green colors.", "Goal": 2},
+    {"Query": "Design a logo for a tech startup named 'Quantum Innovations'.", "Goal": 2},
+    {"Query": "Imagine a serene landscape with rolling hills and a calm lake.", "Goal": 2},
+    {"Query": "Generate an image of a lion walking through a dense jungle.", "Goal": 2},
+
+    {"Query": "Write a sonnet about love and loss, in the style of Shakespeare.", "Goal": 3},
+    {"Query": "Create a monologue for Hamlet where he contemplates revenge.", "Goal": 3},
+    {"Query": "Compose a poem about the beauty of nature, with iambic pentameter.", "Goal": 3},
+    {"Query": "Write a dialogue between Romeo and Juliet about their secret love.", "Goal": 3},
+    {"Query": "Craft a short story in Shakespearean language about fate and destiny.", "Goal": 3},
+
+    {"Query": "Write a Python function to calculate the factorial of a number.", "Goal": 1},
+    {"Query": "Debug this code snippet to fix the 'index out of range' error.", "Goal": 1},
+    {"Query": "Generate a script that fetches data from a REST API using Python.", "Goal": 1},
+    {"Query": "How do I optimize my Python code to reduce memory usage?", "Goal": 1},
+    {"Query": "Write a Python program that checks whether a number is prime.", "Goal": 1},
+
+    {"Query": "What are the current trends in artificial intelligence?", "Goal": 0},
+    {"Query": "Explain how quantum computing works in simple terms.", "Goal": 0},
+    {"Query": "What is the capital of France?", "Goal": 0},
+    {"Query": "Who won the Nobel Prize in Literature in 2023?", "Goal": 0},
+    {"Query": "How does photosynthesis work in plants?", "Goal": 0},
+
+    {"Query": "What are the risk factors for Alzheimer's disease?", "Goal": 4},
+    {"Query": "What are the different types of cancer and their treatments?", "Goal": 4},
+    {"Query": "Can stress cause physical health problems?", "Goal": 4},
+    {"Query": "How do vaccines work to protect against disease?", "Goal": 4},
+    {"Query": "What is the difference between a virus and a bacteria?", "Goal": 4},
+
+    {"Query": "Generate an image of a dragon flying over a medieval castle.", "Goal": 2},
+    {"Query": "Create an image of a cyberpunk city filled with neon lights.", "Goal": 2},
+    {"Query": "Design a futuristic spaceship in outer space with planets in the background.", "Goal": 2},
+    {"Query": "Imagine a snowy mountain landscape with a small cabin.", "Goal": 2},
+    {"Query": "Generate an image of a cat playing with a ball of yarn.", "Goal": 2},
+
+    {"Query": "Write a Shakespearean poem about the inevitability of death.", "Goal": 3},
+    {"Query": "Create a soliloquy in the style of Macbeth, exploring guilt.", "Goal": 3},
+    {"Query": "Write a Shakespearean-style description of a summer's day.", "Goal": 3},
+    {"Query": "Craft a dialogue between two courtiers in the court of King Lear.", "Goal": 3},
+    {"Query": "Write a Shakespearean letter from a nobleman to his lady love.", "Goal": 3},
+
+    {"Query": "Write a Python script that simulates a basic calculator.", "Goal": 1},
+    {"Query": "How do I fix the 'TypeError' that occurs when I try to concatenate an int with a string?", "Goal": 1},
+    {"Query": "Generate a Python script to sort a list of dictionaries by a given key.", "Goal": 1},
+    {"Query": "Create a Python function that checks if a string is a palindrome.", "Goal": 1},
+    {"Query": "What are list comprehensions in Python and how do they work?", "Goal": 1},
+
+    {"Query": "How does the stock market work?", "Goal": 0},
+    {"Query": "Explain the theory of relativity in simple terms.", "Goal": 0},
+    {"Query": "What is the latest in climate change research?", "Goal": 0},
+    {"Query": "What are the benefits of meditation for mental health?", "Goal": 0},
+    {"Query": "How do vaccines work and why are they important?", "Goal": 0}
+]
+
+Spare = [
+    {"Query": "What are the latest advances in cancer treatment?", "Goal": 4},
+    {"Query": "What are the most common causes of headaches?", "Goal": 4},
+    {"Query": "Explain the difference between type 1 and type 2 diabetes.", "Goal": 4},
+    {"Query": "How do blood thinners work in preventing stroke?", "Goal": 4},
+    {"Query": "What are the side effects of chemotherapy?", "Goal": 4},
+
+    {"Query": "Generate an image of a futuristic robot standing in a city square.", "Goal": 2},
+    {"Query": "Create an image of an enchanted forest with glowing mushrooms.", "Goal": 2},
+    {"Query": "Design an image of a vintage car in front of a diner on Route 66.", "Goal": 2},
+    {"Query": "Imagine a scene of the Northern Lights over a snowy landscape.", "Goal": 2},
+    {"Query": "Generate an image of a cybernetic animal with mechanical limbs.", "Goal": 2},
+
+    {"Query": "Write a Shakespearean poem about betrayal by a friend.", "Goal": 3},
+    {"Query": "Create a Shakespearean-style speech about the nature of power.", "Goal": 3},
+    {"Query": "Write a tragedy about a noble hero falling from grace in iambic pentameter.", "Goal": 3},
+    {"Query": "Write a Shakespearean-style comedy involving mistaken identities.", "Goal": 3},
+    {"Query": "Craft a dialogue where two lovers express their feelings for each other in Shakespearean language.",
+     "Goal": 3},
+
+    {"Query": "Write a Python script that reverses the words in a sentence.", "Goal": 4},
+    {"Query": "How can I fix the 'IndentationError' in my Python code?", "Goal": 4},
+    {"Query": "Create a Python function that returns the Fibonacci sequence up to the nth number.", "Goal": 4},
+    {"Query": "Generate a Python program that converts temperatures from Celsius to Fahrenheit.", "Goal": 4},
+    {"Query": "Write a Python function that returns the longest word in a given sentence.", "Goal": 4},
+]
+
 # CaSMAI.universal_input_module(diagnostics_mode=True, diagnostics_array=test_cases)
 # CaSMAI.universal_input_module(debug_mode=True)
 
-CaSMAI.individual_diagnostics_module(micro_test_cases)
+# CaSMAI.individual_diagnostics_module(micro_test_cases)
 
+# CaSMAI.universal_input_module(diagnostics_mode=True, diagnostics_array=New_Test_Cases, llmcic=False)
 
+CaSMAI.universal_input_module(llmcic=False, debug_mode=False)
