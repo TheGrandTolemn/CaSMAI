@@ -142,6 +142,9 @@ class CoreInputOutput:
         prompt = general_query_as_text
         prompt =self.defualt_intro + self.core_distiller() + " " + self.default_prompt + " " + prompt
 
+        desc_strings = ["Description 0", "Description 1", "Description 2", "Description 3",
+                        "Description 4"]
+
         # print(prompt)
 
         chance = 0
@@ -172,8 +175,14 @@ class CoreInputOutput:
                 # Implement looping queries to eliminate hallucinated results
 
                 try:
-                    core_index = int(response['message']['content'][0])
-                    return core_index
+                    if len(response['message']['content']) > 1:
+                        for idx, value in enumerate(desc_strings):
+                            if value in response['message']['content']:
+                                return idx
+                    else:
+                        core_index = int(response['message']['content'][0])
+                        return core_index
+
                 except ValueError as e:
                     if chance >= maxtries:
                         print("input recieved from CIC: ")
@@ -249,7 +258,7 @@ class CoreInputOutput:
 
    # Utility Modules
 
-    def llm_input_diagnostics_module(self, list_dictionary_queries):
+    def llm_input_diagnostics_module(self, list_dictionary_queries, maxtries=2):
 
         correct = 0
         number_queries = len(list_dictionary_queries)
@@ -257,25 +266,67 @@ class CoreInputOutput:
         data_array = []
 
 
+
         for index, item in enumerate(list_dictionary_queries):
             prompt = item["Query"]
             prompt = self.defualt_intro + self.core_distiller() + " " + self.default_prompt + " " + prompt
+            chance = 0
 
             # print(prompt)
 
             # print(prompt)
+            desc_strings = ["Description 0", "Description 1", "Description 2", "Description 3",
+                            "Description 4"]
 
-            response = ollama.chat(model=self.model, messages=[
-                {
-                    'role': 'user',
-                    'content': prompt,
-                },
-            ])
+            for i in range(maxtries):
 
-            answer = response['message']['content']
+                core_index = None
+                foundcore = False
+
+                response = ollama.chat(model=self.model, messages=[
+                    {
+                        'role': 'user',
+                        'content': prompt,
+                    },
+                ])
+
+                # Implement looping queries to eliminate hallucinated results
+
+
+
+
+
+
+                try:
+                    if len(response['message']['content']) > 1:
+                        for idx, value in enumerate(desc_strings):
+                            if value in response['message']['content']:
+                                core_index = idx
+                                foundcore = True
+                                print(response['message']['content'])
+
+                    if foundcore:
+                        break
+                    else:
+                        core_index = int(response['message']['content'][0])
+                        break
+                except ValueError as e:
+                    if chance >= maxtries:
+                        print("input recieved from CIC: ")
+                        print(response['message']['content'])
+                        print(e)
+                        print("Defaulting to Core 0...")
+                        core_index = 0
+                        break
+                    else:
+                        chance += 1
+
+
+
+            answer = core_index
             print(f"Answer to Query# {index}")
             print(answer)
-            if answer[0] == str(item["Goal"]):
+            if answer == int(item["Goal"]):
                 correct += 1
 
             data_array.append({"Answer to Query": answer, "Goal": item["Goal"], "Query": item["Query"], "Full Prompt": prompt})
@@ -525,14 +576,14 @@ class DiffuseCore(SystemCore):
 # Core Initialization
 
 
-Code_Core = SystemCore(core_description=" related to questions for generating Code, Functions, Classes and Methods in various Programming Languges, as well as troubleshooting complex Code errors and problems as well as helping with general questions related to code.",
+Code_Core = SystemCore(core_description=" related to generating Code, Functions, Classes and Methods in various Programming Languges, as well as troubleshooting complex Code errors and problems",
                        core_input_preference="Text",
                        core_output_preference="Text",
                        core_model="codellama",
                        ollama_core=True)
 
 
-Diffuse_Core = DiffuseCore(core_description=" for questions asking for creating artwork, making drawings, producing images, and illustrating concepts. This is for illustrating concepts and making visual or artistic pictures only,",
+Diffuse_Core = DiffuseCore(core_description=" for creating artwork, making drawings, producing images, and illustrating concepts. This is for illustrating concepts and making pictures only,",
                           core_input_preference="Text",
                           core_output_preference="Image",
                           ollama_core=False,
@@ -540,13 +591,13 @@ Diffuse_Core = DiffuseCore(core_description=" for questions asking for creating 
                           pipeline=StableDiffusionPipeline.from_single_file
                           )
 
-Shakespear_Core = SystemCore(core_description=" related to generating witty responses to questions, romantic literature, poems, and anything theatre, drama or shakespeare related",
+Shakespear_Core = SystemCore(core_description=" related to generating witty responses, romantic literature, poems, and anything theatre or drama related",
                        core_input_preference="Text",
                        core_output_preference="Text",
                        core_model="ALIENTELLIGENCE/shakespeare",
                        ollama_core=True)
 
-Medical_Core = SystemCore(core_description=" related to medicine, medical diagnosis, figuring out illnesses or medical conditions based on a set of symptoms given, and general questions regarding medicine, the medical field or common symptoms",
+Medical_Core = SystemCore(core_description=" related to medicine, medical diagnosis, figuring out illnesses or medical conditions based on a set of symptoms given",
                        core_input_preference="Text",
                        core_output_preference="Text",
                        core_model="medllama2:latest",
@@ -764,6 +815,6 @@ Spare = [
 
 # CaSMAI.individual_diagnostics_module(micro_test_cases)
 
-# CaSMAI.universal_input_module(diagnostics_mode=True, diagnostics_array=New_Test_Cases, llmcic=False)
+CaSMAI.universal_input_module(diagnostics_mode=True, diagnostics_array=New_Test_Cases, llmcic=True)
 
-CaSMAI.universal_input_module(llmcic=False, debug_mode=False)
+# CaSMAI.universal_input_module(llmcic=False, debug_mode=False)
